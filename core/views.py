@@ -106,15 +106,34 @@ class InvitationAdminViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         """
-        MULTI-TENANCY:
-        Aseguramos que el usuario solo vea las invitaciones DE SU PROPIA BODA.
-        Asumimos que el modelo User tiene relación con Wedding o se gestiona el perfil.
+        MAGIA DEL SAAS:
+        El usuario no necesita enviar ?wedding_id=5.
+        El sistema sabe quién es él y busca su boda automáticamente.
         """
-        # Ejemplo simplificado: El usuario es 'owner' de la boda
-        # return Invitation.objects.filter(wedding__owner_user=self.request.user)
+        user = self.request.user
         
-        # Por ahora devolvemos todo (ajustar según tu modelo de User)
-        return Invitation.objects.all()
+        # 1. Si eres tú (Superuser), ves TODO (útil para debuggear)
+        if user.is_superuser:
+            return Invitation.objects.all()
+            
+        # 2. Si es un Novio, buscamos SU boda
+        try:
+            # Gracias al OneToOneField y related_name='wedding'
+            my_wedding = user.wedding 
+            return Invitation.objects.filter(wedding=my_wedding)
+        except Wedding.DoesNotExist:
+            # Si el usuario existe pero no le asignaste boda todavía
+            return Invitation.objects.none()
+        
+    def perform_create(self, serializer):
+        """
+        Cuando el novio crea una invitación manual desde el CRM,
+        asginamos su boda automáticamente.
+        """
+        if not self.request.user.is_superuser:
+            serializer.save(wedding=self.request.user.wedding)
+        else:
+            serializer.save()
 
     @action(detail=False, methods=['post'])
     def import_csv(self, request):
@@ -164,6 +183,7 @@ class InvitationAdminViewSet(viewsets.ModelViewSet):
             status=status.HTTP_202_ACCEPTED
         )
     
+    # Eliminar esta acción ya que está duplicada arriba
     @action(detail=False, methods=['post'])
     def import_csv(self, request):
         file = request.FILES.get('file')

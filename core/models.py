@@ -25,6 +25,14 @@ class Wedding(models.Model):
     # Aquí guardas: {"primary_color": "#FF0000", "font": "Roboto", "welcome_msg": "..."}
     theme_config = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    
+    # RELACIÓN CON EL USUARIO (NOVIO/A)
+    # OneToOneField asegura que un usuario solo tenga UNA boda asignada (Simplifica la lógica)
+    owner = models.OneToOneField(
+        settings.AUTH_USER_MODEL, 
+        on_delete=models.CASCADE, 
+        related_name='wedding'
+    )
 
     def __str__(self):
         return f"Boda de {self.couple_names}"
