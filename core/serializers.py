@@ -58,6 +58,7 @@ class InvitationPublicSerializer(serializers.ModelSerializer):
     class Meta:
         model = Invitation
         # Solo mostramos lo que el invitado necesita ver/editar
+        #fields = ['uuid', 'family_name', 'status', 'guests', 'wedding', 'phone_number']
         fields = ['uuid', 'family_name', 'status', 'guests', 'wedding']
         read_only_fields = ['uuid', 'family_name']
          
