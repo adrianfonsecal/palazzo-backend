@@ -8,7 +8,8 @@ from .views import (
     WeddingPublicViewSet,
     InvitationPublicViewSet,
     PhotoUploadViewSet,
-    InvitationAdminViewSet
+    InvitationAdminViewSet,
+    GuestAdminViewSet
 )
 
 
@@ -38,6 +39,10 @@ router.register(r'api/photos', PhotoUploadViewSet, basename='photos-upload')
 # URL: /api/admin/invitations/
 # Incluye las acciones extra: /api/admin/invitations/import_csv/
 router.register(r'api/admin/invitations', InvitationAdminViewSet, basename='admin-invitations')
+
+# URL: /api/admin/guests/
+
+router.register(r'api/admin/guests', GuestAdminViewSet, basename='admin-guests')
 
 
 # -----------------------------------------------------------------------------

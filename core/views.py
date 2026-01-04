@@ -1,4 +1,4 @@
-from rest_framework import viewsets, mixins, status, permissions
+from rest_framework import viewsets, mixins, status, permissions, serializers
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
@@ -6,12 +6,13 @@ from django.shortcuts import get_object_or_404
 import os
 from django.core.files.storage import default_storage
 from .tasks import import_guests_task # Importamos la tarea
-from .models import Wedding, Invitation, Photo
+from .models import Wedding, Invitation, Photo, Guest
 from .serializers import (
     WeddingPublicSerializer, 
     InvitationPublicSerializer, 
     InvitationAdminSerializer,
-    PhotoSerializer
+    PhotoSerializer,
+    GuestSerializer
 )
 
 # -----------------------------------------------------------------------------
@@ -47,9 +48,7 @@ class InvitationPublicViewSet(viewsets.GenericViewSet,
     lookup_field = 'uuid' # La URL será /api/invitation/{uuid}/
 
     def update(self, request, *args, **kwargs):
-        """
-        Sobreescribimos update para asegurar que solo se puedan hacer cambios parciales (PATCH).
-        """
+
         kwargs['partial'] = True
         return super().update(request, *args, **kwargs)
 
@@ -97,6 +96,8 @@ class PhotoUploadViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixin
 # 4. VISTA ADMIN / CRM (Para los Novios)
 # -----------------------------------------------------------------------------
 class InvitationAdminViewSet(viewsets.ModelViewSet):
+
+
     """
     CRUD completo para el panel de administración de los novios.
     Requiere Login.
@@ -127,13 +128,24 @@ class InvitationAdminViewSet(viewsets.ModelViewSet):
         
     def perform_create(self, serializer):
         """
-        Cuando el novio crea una invitación manual desde el CRM,
-        asginamos su boda automáticamente.
+        Interceptamos el guardado para asignar la boda automáticamente
+        basada en el usuario que está haciendo la petición.
         """
-        if not self.request.user.is_superuser:
-            serializer.save(wedding=self.request.user.wedding)
+        user = self.request.user
+        
+        # Opción A: Si eres un usuario normal (Novio) con boda asignada
+        if hasattr(user, 'wedding'): 
+            serializer.save(wedding=user.wedding)
+            
+        # Opción B: Si eres Superuser y NO tienes boda asignada (para evitar crash)
+        elif user.is_superuser:
+            # Aquí podrías decidir qué hacer. 
+            # Si estás probando, asegúrate de que tu Superuser tenga una boda asignada 
+            # o lanza un error amigable.
+            raise serializers.ValidationError({"detail": "El superusuario no tiene una boda vinculada para crear invitaciones automáticamente."})
+            
         else:
-            serializer.save()
+            raise serializers.ValidationError({"detail": "No tienes una boda asignada."})
 
     @action(detail=False, methods=['post'])
     def import_csv(self, request):
@@ -153,6 +165,7 @@ class InvitationAdminViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['post'])
     def send_whatsapp_blast(self, request):
+
         """
         Recibe una lista de IDs de invitaciones para enviar.
         Payload esperado: { "invitation_ids": ["uuid-1", "uuid-2", ...] }
@@ -183,25 +196,30 @@ class InvitationAdminViewSet(viewsets.ModelViewSet):
             status=status.HTTP_202_ACCEPTED
         )
     
-    # Eliminar esta acción ya que está duplicada arriba
-    @action(detail=False, methods=['post'])
-    def import_csv(self, request):
-        file = request.FILES.get('file')
-        wedding_id = request.data.get('wedding_id') # O sacarlo del usuario logueado
-        
-        if not file:
-            return Response({"error": "No file"}, status=400)
 
-        # 1. Guardamos el archivo temporalmente en disco/S3 para que Celery pueda leerlo
-        # (Celery no puede recibir el archivo 'en memoria' eficientemente)
-        file_name = f"imports/wedding_{wedding_id}_{file.name}"
-        file_path = default_storage.save(file_name, file)
-        
-        # Obtenemos la ruta absoluta del sistema
-        full_path = default_storage.path(file_path)
+class GuestAdminViewSet(viewsets.ModelViewSet):
+    """
+    CRUD para gestionar las personas individuales dentro de una invitación.
+    """
+    serializer_class = GuestSerializer # Ya lo definimos antes en serializers.py
+    permission_classes = [permissions.IsAuthenticated]
 
-        # 2. Llamamos a la tarea asíncrona
-        # .delay() es lo que manda la tarea a Redis
-        import_guests_task.delay(wedding_id, full_path)
+    def get_queryset(self):
+        # Solo devolver guests que pertenezcan a la boda del usuario logueado
+        user = self.request.user
+        if user.is_superuser:
+            return Guest.objects.all()
         
-        return Response({"status": "Procesando archivo..."}, status=202)
+        # Filtramos por la boda del usuario
+        if hasattr(user, 'wedding'):
+            return Guest.objects.filter(invitation__wedding=user.wedding)
+        
+        return Guest.objects.none()
+
+    def perform_create(self, serializer): 
+        # Validamos que la invitación pertenezca a la boda del usuario
+        invitation = serializer.validated_data['invitation']
+        if not self.request.user.is_superuser:
+            if invitation.wedding != self.request.user.wedding:
+                raise serializers.ValidationError("No puedes agregar invitados a una boda ajena.")
+        serializer.save()

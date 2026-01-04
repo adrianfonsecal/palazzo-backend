@@ -11,7 +11,7 @@ class GuestSerializer(serializers.ModelSerializer):
     """
     class Meta:
         model = Guest
-        fields = ['id', 'full_name', 'is_child', 'attendance', 'dietary_restrictions']
+        fields = ['id', 'full_name', 'is_child', 'attendance', 'dietary_restrictions', 'invitation']
         # El ID es necesario para saber qué invitado específico estamos actualizando
         read_only_fields = ['id']
     
@@ -26,6 +26,7 @@ class InvitationAdminSerializer(serializers.ModelSerializer):
     class Meta:
         model = Invitation
         fields = '__all__'
+        read_only_fields = ['id', 'uuid', 'wedding', 'guests']
 
 # -----------------------------------------------------------------------------
 # 2. SERIALIZER DE BODA (WEDDING)
@@ -59,7 +60,7 @@ class InvitationPublicSerializer(serializers.ModelSerializer):
         model = Invitation
         # Solo mostramos lo que el invitado necesita ver/editar
         #fields = ['uuid', 'family_name', 'status', 'guests', 'wedding', 'phone_number']
-        fields = ['uuid', 'family_name', 'status', 'guests', 'wedding']
+        fields = ['uuid', 'family_name', 'status', 'guests', 'wedding', 'phone_number']
         read_only_fields = ['uuid', 'family_name']
          
 
