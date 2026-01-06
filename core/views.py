@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 from django.shortcuts import get_object_or_404
 import os
+from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from .tasks import import_guests_task # Importamos la tarea
 from .models import Wedding, Invitation, Photo, Guest
@@ -143,25 +144,40 @@ class InvitationAdminViewSet(viewsets.ModelViewSet):
             # Si estás probando, asegúrate de que tu Superuser tenga una boda asignada 
             # o lanza un error amigable.
             raise serializers.ValidationError({"detail": "El superusuario no tiene una boda vinculada para crear invitaciones automáticamente."})
-            
+
         else:
             raise serializers.ValidationError({"detail": "No tienes una boda asignada."})
 
     @action(detail=False, methods=['post'])
     def import_csv(self, request):
-        """
-        Endpoint especial para recibir el CSV y procesarlo en segundo plano (Celery).
-        """
-        file = request.FILES.get('file')
-        wedding_id = request.data.get('wedding_id')
+        file_obj = request.FILES.get('file')
         
-        if not file:
-            return Response({"error": "No file provided"}, status=status.HTTP_400_BAD_REQUEST)
+        if not file_obj:
+            return Response({"error": "No se envió ningún archivo"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Aquí llamarías a tu tarea de Celery
-        # process_csv_import.delay(wedding_id, file.read().decode('utf-8'))
-        
-        return Response({"status": "Importación iniciada. Te avisaremos cuando termine."}, status=status.HTTP_202_ACCEPTED)
+        try:
+            # 1. Obtenemos la boda del usuario (Login required)
+            user = request.user
+            if user.is_superuser:
+                 # Lógica para superuser (ej. recibir wedding_id por body o error)
+                 return Response({"error": "Superuser debe especificar wedding_id manualmente (no implementado aquí)"}, status=400)
+            
+            wedding = user.wedding
+
+            # 2. Guardamos el archivo temporalmente en el sistema de archivos
+            # 'tmp/' se creará dentro de tu carpeta MEDIA_ROOT
+            file_path = default_storage.save(f"tmp/{file_obj.name}", ContentFile(file_obj.read()))
+            
+            # Obtenemos la ruta absoluta del sistema operativo
+            full_path = default_storage.path(file_path)
+
+            # 3. Llamamos a la tarea de Celery pasando IDs y Rutas (Strings/Ints), no objetos
+            import_guests_task.delay(wedding.id, full_path)
+            
+            return Response({"status": "El archivo se está procesando en segundo plano."}, status=status.HTTP_202_ACCEPTED)
+
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
     @action(detail=False, methods=['post'])
     def send_whatsapp_blast(self, request):

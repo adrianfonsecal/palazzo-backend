@@ -5,6 +5,7 @@ from celery import shared_task
 from django.db import transaction
 from django.conf import settings
 from .models import Wedding, Invitation, Guest
+import os
 
 # Configuramos un logger para ver errores en la consola de Celery
 logger = logging.getLogger(__name__)
@@ -14,23 +15,16 @@ logger = logging.getLogger(__name__)
 # -----------------------------------------------------------------------------
 @shared_task
 def import_guests_task(wedding_id, file_path):
-    """
-    Lee un archivo Excel/CSV y crea Invitaciones y Guests.
-    ESTRATEGIA: Agrupar filas por 'Telefono' para crear familias.
-    """
     try:
-        # 1. Leemos el archivo usando Pandas (soporta .csv y .xlsx)
-        # Asumimos que el archivo tiene columnas: 
-        # ['Nombre Familia', 'Telefono', 'Email', 'Nombre Invitado', 'Es Niño']
+        
         if file_path.endswith('.csv'):
             df = pd.read_csv(file_path)
         else:
             df = pd.read_excel(file_path)
 
-        # Limpiamos nombres de columnas (quitar espacios, minúsculas)
+        
         df.columns = [c.strip().lower().replace(' ', '_') for c in df.columns]
         
-        # Validamos que existan las columnas mínimas
         required_cols = ['telefono', 'nombre_invitado']
         if not all(col in df.columns for col in required_cols):
             return f"Error: Faltan columnas. Se requiere al menos: {required_cols}"
@@ -38,22 +32,15 @@ def import_guests_task(wedding_id, file_path):
         guests_created = 0
         invitations_created = 0
 
-        # 2. Usamos una transacción atómica: O se guarda TODO o no se guarda NADA.
-        # Esto evita que si falla la fila 50, te queden 49 invitados a medias.
         with transaction.atomic():
             wedding = Wedding.objects.get(id=wedding_id)
 
-            # 3. Agrupamos por número de teléfono (La clave para armar grupos)
-            # Cada 'phone_group' será una Invitación, y 'rows' son los invitados dentro.
             for phone, rows in df.groupby('telefono'):
                 
-                # Tomamos los datos de cabecera de la primera fila del grupo
                 first_row = rows.iloc[0]
                 family_name = first_row.get('nombre_familia', f"Familia {first_row['nombre_invitado']}")
                 email = first_row.get('email', None)
-
-                # A. Creamos la Invitación (Cabecera)
-                # update_or_create evita duplicados si suben el archivo 2 veces
+                
                 invitation, created = Invitation.objects.update_or_create(
                     wedding=wedding,
                     phone_number=str(phone),
@@ -65,20 +52,25 @@ def import_guests_task(wedding_id, file_path):
                 if created:
                     invitations_created += 1
 
-                # B. Creamos los Guests (Detalle)
                 for _, row in rows.iterrows():
-                    Guest.objects.create(
-                        invitation=invitation,
-                        full_name=row['nombre_invitado'],
-                        is_child=bool(row.get('es_nino', False))
-                        # attendance y dietary se quedan en default
-                    )
-                    guests_created += 1
+                    guest_list = row["nombre_invitado"].split(',')
+                    for guest_name in guest_list:
+                        Guest.objects.create(
+                            invitation=invitation,
+                            full_name=guest_name.strip(),
+                            is_child=bool(row.get('es_nino', False))
+                        )
+                        guests_created += 1
+        
 
+        if os.path.exists(file_path):
+            os.remove(file_path)
         logger.info(f"Importación exitosa: {invitations_created} invitaciones, {guests_created} invitados.")
         return f"Procesado: {invitations_created} invitaciones, {guests_created} personas."
 
     except Exception as e:
+        if os.path.exists(file_path):
+            os.remove(file_path)
         logger.error(f"Error importando archivo para boda {wedding_id}: {str(e)}")
         return f"Error crítico: {str(e)}"
 
