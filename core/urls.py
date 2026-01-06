@@ -9,7 +9,8 @@ from .views import (
     InvitationPublicViewSet,
     PhotoUploadViewSet,
     InvitationAdminViewSet,
-    GuestAdminViewSet
+    GuestAdminViewSet,
+    UserRegistrationViewSet
 )
 
 
@@ -44,6 +45,8 @@ router.register(r'api/admin/invitations', InvitationAdminViewSet, basename='admi
 
 router.register(r'api/admin/guests', GuestAdminViewSet, basename='admin-guests')
 
+# URL: /api/admin/users/
+router.register(r'api/register', UserRegistrationViewSet, basename='register-user')
 
 # -----------------------------------------------------------------------------
 # URL PATTERNS PRINCIPALES

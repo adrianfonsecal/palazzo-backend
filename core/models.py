@@ -2,6 +2,7 @@ import uuid
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.conf import settings
+from django.contrib.auth.models import User
 
 # -----------------------------------------------------------------------------
 # 1. MODELO TENANT (La Boda)
@@ -29,10 +30,14 @@ class Wedding(models.Model):
     # RELACIÓN CON EL USUARIO (NOVIO/A)
     # OneToOneField asegura que un usuario solo tenga UNA boda asignada (Simplifica la lógica)
     owner = models.OneToOneField(
-        settings.AUTH_USER_MODEL, 
+        User,
         on_delete=models.CASCADE, 
-        related_name='wedding'
+        related_name='wedding',
+        null=True,   # <--- PERMITE QUE LA BODA NAZCA SIN DUEÑO
+        blank=True
     )
+
+    claim_code = models.CharField(max_length=10, blank=True, null=True, help_text="Código secreto para reclamar la boda")
 
     def __str__(self):
         return f"Boda de {self.couple_names}"

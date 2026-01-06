@@ -15,14 +15,13 @@ logger = logging.getLogger(__name__)
 # -----------------------------------------------------------------------------
 @shared_task
 def import_guests_task(wedding_id, file_path):
+    print("Iniciando importación de invitados...")
     try:
-        
         if file_path.endswith('.csv'):
             df = pd.read_csv(file_path)
         else:
             df = pd.read_excel(file_path)
 
-        
         df.columns = [c.strip().lower().replace(' ', '_') for c in df.columns]
         
         required_cols = ['telefono', 'nombre_invitado']
@@ -79,70 +78,54 @@ def import_guests_task(wedding_id, file_path):
 # TAREA 2: ENVÍO MASIVO WHATSAPP
 # -----------------------------------------------------------------------------
 @shared_task
-def send_whatsapp_blast_task(invitation_uuids
-                             ):
-    """
-    Envía WhatsApps solo a la lista de UUIDs recibida.
-    """
-    # Buscamos las invitaciones en la BD que coincidan con la lista
-    # y que NO hayan sido enviadas (doble check de seguridad)
-    invitations_to_send = Invitation.objects.filter(
-        uuid__in=invitation_uuids,
-        status=Invitation.Status.PENDING # Opcional: permitir reenvío quitando esto
-    )
+def send_whatsapp_blast_task(invitation_uuids):
 
-    sent_count = 0
-    errors = []
+    invitations = Invitation.objects.filter(uuid__in=invitation_uuids)
     
-    for invite in invitations_to_send:
+    results = {
+        "success": 0,
+        "failed": 0,
+        "errors": []
+    }
+
+    url = f"https://graph.facebook.com/{settings.META_API_VERSION}/{settings.META_PHONE_ID}/messages"
+    headers = {
+        "Authorization": f"Bearer {settings.META_ACCESS_TOKEN}",
+        "Content-Type": "application/json"
+    }
+
+    for invite in invitations:
         try:
-            # 1. Construir el mensaje
-            # Meta requiere plantillas pre-aprobadas. Supongamos una llamada "boda_invitacion_v1"
-            # Variables: {{1}} = Nombre Familia, {{2}} = Link
-            
+            # 2. Construimos el Payload (ESTO DEBE COINCIDIR CON TU PLANTILLA EN META)
             payload = {
                 "messaging_product": "whatsapp",
                 "to": invite.phone_number,
                 "type": "template",
                 "template": {
-                    "name": "boda_invitacion_v1", # Nombre configurado en Facebook Business
-                    "language": {"code": "es"},
-                    "components": [
-                        {
-                            "type": "body",
-                            "parameters": [
-                                {"type": "text", "text": invite.family_name},  # Variable {{1}}
-                                {"type": "text", "text": invite.public_url}    # Variable {{2}} (El Link UUID)
-                            ]
-                        }
-                    ]
+                    "name": "hello_world",  # <--- Cambia esto por el nombre de tu plantilla
+                    "language": {"code": "es_MX"}, # <--- O "es_MX"
+                    # "components": [ ... ] # Si tu plantilla tiene variables, van aquí
                 }
             }
-
-            # 2. Enviar a la API de Meta
-            response = requests.post(
-                url=f"https://graph.facebook.com/v17.0/{settings.META_PHONE_ID}/messages",
-                headers={
-                    "Authorization": f"Bearer {settings.META_ACCESS_TOKEN}",
-                    "Content-Type": "application/json"
-                },
-                json=payload,
-                timeout=10 # Timeout para no colgar el worker
-            )
-
-            # 3. Actualizar estado según respuesta
-            if response.status_code in [200, 201]:
-                invite.status = Invitation.Status.SENT
-                invite.last_sent_at = pd.Timestamp.now()
-                invite.save()
-                sent_count += 1
-            else:
-                logger.error(f"Fallo al enviar a {invite.phone_number}: {response.text}")
             
 
-        except Exception as e:
-            logger.error(f"Error enviando a {invite.uuid}: {e}")
-            errors.append(str(e))
-            continue # Si falla uno, seguimos con el siguiente
+            # 3. Enviar
+            response = requests.post(url, json=payload, headers=headers, timeout=10)
+            data = response.json()
 
-    return f"Procesado: {sent_count} enviados. Errores: {len(errors)}"
+            if response.status_code in [200, 201]:
+                invite.status = 'SENT' 
+                invite.save()
+                results["success"] += 1
+            else:
+                error_msg = data.get('error', {}).get('message', 'Unknown error')
+                logger.error(f"Fallo WhatsApp {invite.phone_number}: {error_msg}")
+                results["failed"] += 1
+                results["errors"].append(f"{invite.phone_number}: {error_msg}")
+
+        except Exception as e:
+            logger.error(f"Error crítico enviando a {invite.uuid}: {str(e)}")
+            results["failed"] += 1
+            results["errors"].append(str(e))
+
+    return f"WhatsApp Blast finalizado. Éxitos: {results['success']}, Fallos: {results['failed']}"

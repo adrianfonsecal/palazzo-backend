@@ -126,6 +126,7 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+# CORS AND CSRF SETTINGS
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000", # Tu Next.js local
     "https://palazzoinvites.com", # Tu producción futura
@@ -138,3 +139,14 @@ CSRF_TRUSTED_ORIGINS = [
 
 CORS_ALLOW_CREDENTIALS = True
 SESSION_COOKIE_SECURE = True
+
+
+# Celery Configuration Options
+CELERY_TASK_ALWAYS_EAGER = True
+CELERY_TASK_EAGER_PROPAGATES = True
+CELERY_BROKER_URL = 'redis://127.0.0.1:6379/0'
+
+# Credenciales de Meta / Facebook Developers
+META_ACCESS_TOKEN = "EAAG..." # Tu token temporal o permanente
+META_PHONE_ID = "105..."      # El ID del número de teléfono (Phone Number ID)
+META_API_VERSION = "v17.0"    # O la versión actual

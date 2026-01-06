@@ -1,4 +1,5 @@
 from rest_framework import viewsets, mixins, status, permissions, serializers
+from django.contrib.auth.forms import UserCreationForm
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
@@ -9,6 +10,7 @@ from django.core.files.storage import default_storage
 from .tasks import import_guests_task # Importamos la tarea
 from .models import Wedding, Invitation, Photo, Guest
 from .serializers import (
+    UserSerializer,
     WeddingPublicSerializer, 
     InvitationPublicSerializer, 
     InvitationAdminSerializer,
@@ -97,8 +99,6 @@ class PhotoUploadViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixin
 # 4. VISTA ADMIN / CRM (Para los Novios)
 # -----------------------------------------------------------------------------
 class InvitationAdminViewSet(viewsets.ModelViewSet):
-
-
     """
     CRUD completo para el panel de administración de los novios.
     Requiere Login.
@@ -107,42 +107,27 @@ class InvitationAdminViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        """
-        MAGIA DEL SAAS:
-        El usuario no necesita enviar ?wedding_id=5.
-        El sistema sabe quién es él y busca su boda automáticamente.
-        """
         user = self.request.user
         
-        # 1. Si eres tú (Superuser), ves TODO (útil para debuggear)
         if user.is_superuser:
             return Invitation.objects.all()
             
-        # 2. Si es un Novio, buscamos SU boda
         try:
-            # Gracias al OneToOneField y related_name='wedding'
             my_wedding = user.wedding 
             return Invitation.objects.filter(wedding=my_wedding)
         except Wedding.DoesNotExist:
-            # Si el usuario existe pero no le asignaste boda todavía
             return Invitation.objects.none()
         
     def perform_create(self, serializer):
-        """
-        Interceptamos el guardado para asignar la boda automáticamente
-        basada en el usuario que está haciendo la petición.
-        """
+    
         user = self.request.user
         
-        # Opción A: Si eres un usuario normal (Novio) con boda asignada
+        
         if hasattr(user, 'wedding'): 
             serializer.save(wedding=user.wedding)
             
-        # Opción B: Si eres Superuser y NO tienes boda asignada (para evitar crash)
+        
         elif user.is_superuser:
-            # Aquí podrías decidir qué hacer. 
-            # Si estás probando, asegúrate de que tu Superuser tenga una boda asignada 
-            # o lanza un error amigable.
             raise serializers.ValidationError({"detail": "El superusuario no tiene una boda vinculada para crear invitaciones automáticamente."})
 
         else:
@@ -156,22 +141,17 @@ class InvitationAdminViewSet(viewsets.ModelViewSet):
             return Response({"error": "No se envió ningún archivo"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            # 1. Obtenemos la boda del usuario (Login required)
+            
             user = request.user
-            if user.is_superuser:
-                 # Lógica para superuser (ej. recibir wedding_id por body o error)
-                 return Response({"error": "Superuser debe especificar wedding_id manualmente (no implementado aquí)"}, status=400)
+            if user.is_superuser: 
+                return Response({"error": "Superuser debe especificar wedding_id manualmente (no implementado aquí)"}, status=400)
             
             wedding = user.wedding
 
-            # 2. Guardamos el archivo temporalmente en el sistema de archivos
-            # 'tmp/' se creará dentro de tu carpeta MEDIA_ROOT
             file_path = default_storage.save(f"tmp/{file_obj.name}", ContentFile(file_obj.read()))
             
-            # Obtenemos la ruta absoluta del sistema operativo
             full_path = default_storage.path(file_path)
-
-            # 3. Llamamos a la tarea de Celery pasando IDs y Rutas (Strings/Ints), no objetos
+            
             import_guests_task.delay(wedding.id, full_path)
             
             return Response({"status": "El archivo se está procesando en segundo plano."}, status=status.HTTP_202_ACCEPTED)
@@ -180,40 +160,42 @@ class InvitationAdminViewSet(viewsets.ModelViewSet):
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
     @action(detail=False, methods=['post'])
-    def send_whatsapp_blast(self, request):
-
+    def send_blast(self, request):
         """
-        Recibe una lista de IDs de invitaciones para enviar.
-        Payload esperado: { "invitation_ids": ["uuid-1", "uuid-2", ...] }
+        Endpoint: POST /api/invitations/send_blast/
+        Body: { "invitation_ids": ["uuid-1", "uuid-2", ...] }
         """
-        # 1. Obtener la lista de IDs que enviaron los novios
-        invitation_ids = request.data.get('invitation_ids', [])
+        invitation_uuids = request.data.get('invitation_ids', [])
         
-        if not invitation_ids:
-            return Response(
-                {"error": "Debes seleccionar al menos una invitación."}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        if not invitation_uuids:
+            return Response({"error": "No se seleccionaron invitaciones."}, status=400)
 
-        # 2. Validar que esos IDs pertenezcan realmente a esta boda (Seguridad)
-        # Asumiendo que ya tienes filtrado el queryset por usuario/boda:
-        # valid_ids = self.get_queryset().filter(uuid__in=invitation_ids).values_list('uuid', flat=True)
-        # Convertimos a lista de strings para pasarlo a Celery (que requiere datos serializables JSON)
-        
-        # Por simplicidad del ejemplo, pasamos la lista directa, 
-        # pero la tarea debe re-validar.
-        
-        # 3. Llamar a la tarea con la lista específica
-        from core.tasks import send_whatsapp_list_task
-        send_whatsapp_list_task.delay(invitation_ids)
-        
-        return Response(
-            {"status": f"Se han encolado {len(invitation_ids)} invitaciones para envío."}, 
-            status=status.HTTP_202_ACCEPTED
-        )
-    
+        # Validación de seguridad: Asegurarse que esas invitaciones pertenezcan a la boda del usuario
+        # (Para evitar que envíen mensajes a gente de otra boda por error)
+        if not request.user.is_superuser:
+            user_wedding = request.user.wedding
+            valid_count = Invitation.objects.filter(
+                wedding=user_wedding, 
+                uuid__in=invitation_uuids
+            ).count()
+            
+            if valid_count != len(invitation_uuids):
+                return Response({"error": "Algunas invitaciones no te pertenecen."}, status=403)
 
+        # Llamar a Celery
+        from .tasks import send_whatsapp_blast_task
+        send_whatsapp_blast_task.delay(invitation_uuids)
+
+        return Response({
+            "status": "Enviando mensajes...", 
+            "count": len(invitation_uuids)
+        }, status=200)
+
+# -----------------------------------------------------------------------------
+# 5. VISTA Invitados / CRM (Para los Novios)
+# -----------------------------------------------------------------------------
 class GuestAdminViewSet(viewsets.ModelViewSet):
+
     """
     CRUD para gestionar las personas individuales dentro de una invitación.
     """
@@ -239,3 +221,27 @@ class GuestAdminViewSet(viewsets.ModelViewSet):
             if invitation.wedding != self.request.user.wedding:
                 raise serializers.ValidationError("No puedes agregar invitados a una boda ajena.")
         serializer.save()
+
+# -----------------------------------------------------------------------------
+# 6. VISTA de Registro Usuario Django Admin (Para los Novios NO SUPERUSER)
+# -----------------------------------------------------------------------------
+class UserRegistrationViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin):
+    """
+    Endpoint: POST /api/register/
+    JSON Body: { "username": "...", "password": "...", "email": "...", "wedding_name": "Familia X" }
+    """
+    permission_classes = [permissions.AllowAny]
+    serializer_class = UserSerializer # Usamos el serializer, no el Form
+
+    # No necesitas sobreescribir def create() si usas el mixin y el serializer correctamente,
+    # pero si quieres personalizar la respuesta:
+    # def create(self, request, *args, **kwargs):
+    #     serializer = self.get_serializer(data=request.data)
+    #     serializer.is_valid(raise_exception=True)
+    #     user = serializer.save()
+        
+    #     return Response({
+    #         "status": "Usuario y Boda creados exitosamente.",
+    #         "user_id": user.id,
+    #         "wedding_id": user.wedding.id # Devolvemos esto para facilitar el frontend
+    #     }, status=status.HTTP_201_CREATED)

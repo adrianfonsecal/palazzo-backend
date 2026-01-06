@@ -1,5 +1,7 @@
+
 from rest_framework import serializers
 from .models import Wedding, Invitation, Guest, Photo
+from django.contrib.auth.models import User
 
 # -----------------------------------------------------------------------------
 # 1. SERIALIZERS DE INVITADOS (GUEST)
@@ -111,4 +113,28 @@ class PhotoSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(f"La imagen no puede pesar más de {limit_mb}MB.")
         return value
     
-    
+# -----------------------------------------------------------------------------
+# 5. SERIALIZER DE USUARIOS (DJANGO ADMIN)
+# -----------------------------------------------------------------------------
+
+class UserSerializer(serializers.ModelSerializer):
+    # Campos extra opcionales para personalizar la boda desde el registro
+    wedding = serializers.CharField(write_only=True, required=False)
+
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'email', 'password', 'wedding']
+        extra_kwargs = {'password': {'write_only': True}}
+
+    def create(self, validated_data):
+        # Sacamos el nombre de la boda si viene, sino None
+        wedding_name = validated_data.pop('wedding', None)
+        
+        # Creamos el usuario (la contraseña se encripta aquí)
+        user = User.objects.create_user(**validated_data)
+        
+        if wedding_name and hasattr(user, 'wedding'):
+            user.wedding.family_name = wedding_name
+            user.wedding.save()
+            
+        return user
