@@ -25,8 +25,7 @@ SECRET_KEY = 'django-insecure-e$82k1c-gtc$(+^quro^4+stxuu7bofumai&w+ntf=zcj2jg))
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
-
+ALLOWED_HOSTS = ['*']
 
 # Application definition
 
@@ -135,6 +134,7 @@ CORS_ALLOWED_ORIGINS = [
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
     "https://palazzoinvites.com",
+    'https://*.ngrok-free.app', # Comodín para cualquier URL de ngrok
 ]
 
 CORS_ALLOW_CREDENTIALS = True
@@ -147,6 +147,6 @@ CELERY_TASK_EAGER_PROPAGATES = True
 CELERY_BROKER_URL = 'redis://127.0.0.1:6379/0'
 
 # Credenciales de Meta / Facebook Developers
-META_ACCESS_TOKEN = "EAAG..." # Tu token temporal o permanente
-META_PHONE_ID = "105..."      # El ID del número de teléfono (Phone Number ID)
-META_API_VERSION = "v17.0"    # O la versión actual
+META_ACCESS_TOKEN = "EAAdHU3VJl14BQSpUMaPmrIr7JvVdlWVaZAVEB4d6aGTUOCj9g1Amr7fixsyLfREoch5wx89TZCWOjyRxp30RfxOpIV5iOoZBzGd4KiaoZBNJX1fE36swc7O3bZAzFcPYVefYIB0eqYfCO9YFa4bi9oIZCWcnxxZCovpxfNIZAH7XAVTPnLC02AzhfisFmjnOZABEJ4plIOpHEQXkWo82Azw2pxHVhkZCejzilja0hYZByCppnrUr7PkCL2fqxQCB2BixclyeZAiESzCaNL9kfcb6dFqcAj7RNmZCugv6YLZASCMgZDZD" # Tu token temporal o permanente
+META_PHONE_ID = "963271596861809"      # El ID del número de teléfono (Phone Number ID)
+META_API_VERSION = "v22.0"    # O la versión actual

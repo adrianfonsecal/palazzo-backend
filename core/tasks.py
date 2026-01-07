@@ -103,17 +103,34 @@ def send_whatsapp_blast_task(invitation_uuids):
                 "type": "template",
                 "template": {
                     "name": "hello_world",  # <--- Cambia esto por el nombre de tu plantilla
-                    "language": {"code": "es_MX"}, # <--- O "es_MX"
-                    # "components": [ ... ] # Si tu plantilla tiene variables, van aquí
+                    "language": {"code": "en_US"}, # <--- O "es_MX",
+                    # "components": [
+                    #     {
+                    #         "type": "body",
+                    #         "parameters": [
+                    #             {
+                    #                 "type": "text",
+                    #                 "text": invite.family_name
+                    #             },
+                    #             {
+                    #                 "type": "text",
+                    #                 "text": invite.public_url
+                    #             }
+                    #         ]
+                    #     }
+                    # ]
+                    # # "components": [ ... ] # Si tu plantilla tiene variables, van aquí
                 }
             }
             
-
+            
             # 3. Enviar
             response = requests.post(url, json=payload, headers=headers, timeout=10)
             data = response.json()
 
             if response.status_code in [200, 201]:
+                wamid = data.get('messages', [{}])[0].get('id')
+                invite.whatsapp_message_id = wamid # <--- GUARDAMOS EL ID
                 invite.status = 'SENT' 
                 invite.save()
                 results["success"] += 1

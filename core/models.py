@@ -36,7 +36,7 @@ class Wedding(models.Model):
         null=True,   # <--- PERMITE QUE LA BODA NAZCA SIN DUEÑO
         blank=True
     )
-
+    
     claim_code = models.CharField(max_length=10, blank=True, null=True, help_text="Código secreto para reclamar la boda")
 
     def __str__(self):
@@ -71,6 +71,7 @@ class Invitation(models.Model):
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
     last_sent_at = models.DateTimeField(null=True, blank=True)
 
+    whatsapp_message_id = models.CharField(max_length=100, blank=True, null=True, unique=True)
     def __str__(self):
         return f"{self.family_name} ({self.get_status_display()})"
 

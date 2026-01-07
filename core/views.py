@@ -7,7 +7,7 @@ from django.shortcuts import get_object_or_404
 import os
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
-from .tasks import import_guests_task # Importamos la tarea
+from .tasks import import_guests_task, send_whatsapp_blast_task # Importamos la tarea
 from .models import Wedding, Invitation, Photo, Guest
 from .serializers import (
     UserSerializer,
@@ -161,17 +161,12 @@ class InvitationAdminViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['post'])
     def send_blast(self, request):
-        """
-        Endpoint: POST /api/invitations/send_blast/
-        Body: { "invitation_ids": ["uuid-1", "uuid-2", ...] }
-        """
+
         invitation_uuids = request.data.get('invitation_ids', [])
         
         if not invitation_uuids:
             return Response({"error": "No se seleccionaron invitaciones."}, status=400)
 
-        # Validación de seguridad: Asegurarse que esas invitaciones pertenezcan a la boda del usuario
-        # (Para evitar que envíen mensajes a gente de otra boda por error)
         if not request.user.is_superuser:
             user_wedding = request.user.wedding
             valid_count = Invitation.objects.filter(
@@ -182,8 +177,6 @@ class InvitationAdminViewSet(viewsets.ModelViewSet):
             if valid_count != len(invitation_uuids):
                 return Response({"error": "Algunas invitaciones no te pertenecen."}, status=403)
 
-        # Llamar a Celery
-        from .tasks import send_whatsapp_blast_task
         send_whatsapp_blast_task.delay(invitation_uuids)
 
         return Response({
