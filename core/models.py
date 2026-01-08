@@ -72,6 +72,7 @@ class Invitation(models.Model):
     last_sent_at = models.DateTimeField(null=True, blank=True)
 
     whatsapp_message_id = models.CharField(max_length=100, blank=True, null=True, unique=True)
+    
     def __str__(self):
         return f"{self.family_name} ({self.get_status_display()})"
 

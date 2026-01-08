@@ -125,23 +125,48 @@ class PhotoSerializer(serializers.ModelSerializer):
 # -----------------------------------------------------------------------------
 
 class UserSerializer(serializers.ModelSerializer):
-    # Campos extra opcionales para personalizar la boda desde el registro
-    wedding = serializers.CharField(write_only=True, required=False)
+    slug = serializers.CharField(write_only=True, required=True)
+    claim_code = serializers.CharField(write_only=True, required=True)
+    
+    password = serializers.CharField(write_only=True)
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'password', 'wedding']
-        extra_kwargs = {'password': {'write_only': True}}
+        fields = ['id', 'username', 'email', 'password', 'slug', 'claim_code']
+        read_only_fields = ['id']
+
+    def validate(self, data):
+
+        slug = data.get('slug')
+        claim_code = data.get('claim_code')
+
+        try:
+            wedding = Wedding.objects.get(slug=slug, claim_code=claim_code)
+            
+            if wedding.owner is not None:
+                raise serializers.ValidationError({
+                    "claim_code": "Esta boda ya ha sido reclamada por otro usuario."
+                })
+            
+            self.context['target_wedding'] = wedding
+
+        except Wedding.DoesNotExist:
+            raise serializers.ValidationError({
+                "claim_code": "El identificador (Slug) o el Código de Reclamación son incorrectos."
+            })
+
+        return data
 
     def create(self, validated_data):
-        # Sacamos el nombre de la boda si viene, sino None
-        wedding_name = validated_data.pop('wedding', None)
+
+        validated_data.pop('slug')
+        validated_data.pop('claim_code')
         
-        # Creamos el usuario (la contraseña se encripta aquí)
         user = User.objects.create_user(**validated_data)
         
-        if wedding_name and hasattr(user, 'wedding'):
-            user.wedding.family_name = wedding_name
-            user.wedding.save()
-            
+        wedding = self.context['target_wedding']
+        
+        wedding.owner = user
+        wedding.save()
+        
         return user
