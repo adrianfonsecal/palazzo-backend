@@ -159,9 +159,10 @@ SESSION_COOKIE_SECURE = True
 # Celery Configuration Options
 CELERY_TASK_ALWAYS_EAGER = True
 CELERY_TASK_EAGER_PROPAGATES = True
-CELERY_BROKER_URL = 'redis://127.0.0.1:6379/0'
+CELERY_BROKER_URL = os.getenv('REDIS_URL')
+
 
 # Credenciales de Meta / Facebook Developers
-META_ACCESS_TOKEN = "EAAdHU3VJl14BQSpUMaPmrIr7JvVdlWVaZAVEB4d6aGTUOCj9g1Amr7fixsyLfREoch5wx89TZCWOjyRxp30RfxOpIV5iOoZBzGd4KiaoZBNJX1fE36swc7O3bZAzFcPYVefYIB0eqYfCO9YFa4bi9oIZCWcnxxZCovpxfNIZAH7XAVTPnLC02AzhfisFmjnOZABEJ4plIOpHEQXkWo82Azw2pxHVhkZCejzilja0hYZByCppnrUr7PkCL2fqxQCB2BixclyeZAiESzCaNL9kfcb6dFqcAj7RNmZCugv6YLZASCMgZDZD" # Tu token temporal o permanente
-META_PHONE_ID = "963271596861809"      # El ID del número de teléfono (Phone Number ID)
-META_API_VERSION = "v22.0"    # O la versión actual
+META_ACCESS_TOKEN = os.getenv('META_ACCESS_TOKEN')
+META_PHONE_ID = os.getenv('META_PHONE_ID')
+META_API_VERSION = "v22.0"
