@@ -106,6 +106,8 @@ class InvitationAdminViewSet(viewsets.ModelViewSet):
     serializer_class = InvitationAdminSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+    lookup_field = 'uuid'  # <--- Vital para que el update funcione con UUIDs
+
     def get_queryset(self):
         user = self.request.user
         
@@ -183,6 +185,27 @@ class InvitationAdminViewSet(viewsets.ModelViewSet):
             "status": "Enviando mensajes...", 
             "count": len(invitation_uuids)
         }, status=200)
+
+    @action(detail=False, methods=['post']) 
+    def bulk_delete(self, request):
+
+        invitation_uuids = request.data.get('invitation_uuids', [])
+        
+        if not invitation_uuids:
+            return Response({"error": "No se enviaron IDs para eliminar."}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = request.user
+        
+        queryset = Invitation.objects.all()
+        if not user.is_superuser:
+            queryset = queryset.filter(wedding=user.wedding)
+
+        deleted_count, _ = queryset.filter(uuid__in=invitation_uuids).delete()
+
+        if deleted_count == 0:
+            return Response({"warning": "No se borró nada. Verifica que los IDs sean correctos y te pertenezcan."}, status=status.HTTP_404_NOT_FOUND)
+
+        return Response({"status": f"Se eliminaron {deleted_count} invitaciones correctamente."}, status=status.HTTP_200_OK)
 
 # -----------------------------------------------------------------------------
 # 5. VISTA Invitados / CRM (Para los Novios)

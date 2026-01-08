@@ -8,28 +8,45 @@ from django.contrib.auth.models import User
 # -----------------------------------------------------------------------------
 
 class GuestSerializer(serializers.ModelSerializer):
-    """
-    Serializa a cada persona individual.
-    """
+    # Definimos id explícitamente para que no sea read-only y pase a validated_data
+    id = serializers.IntegerField(required=False) 
+
     class Meta:
         model = Guest
         fields = ['id', 'full_name', 'is_child', 'attendance', 'dietary_restrictions', 'invitation']
-        # El ID es necesario para saber qué invitado específico estamos actualizando
-        read_only_fields = ['id']
+        read_only_fields = ['invitation'] # La invitación se infiere del padre
     
 class InvitationAdminSerializer(serializers.ModelSerializer):
-    """
-    VISTA ADMIN (Para los novios/CRM).
-    - Muestra TODO: teléfonos, emails, logs de envío.
-    """
-    guests = GuestSerializer(many=True, read_only=True)
-    public_url = serializers.ReadOnlyField() # Usamos la propiedad del modelo
+    guests = GuestSerializer(many=True, required=False) 
+    public_url = serializers.ReadOnlyField()
 
     class Meta:
         model = Invitation
         fields = '__all__'
-        read_only_fields = ['id', 'uuid', 'wedding', 'guests']
+        read_only_fields = ['id', 'uuid', 'wedding', 'last_sent_at', 'whatsapp_message_id']
 
+    def update(self, instance, validated_data):
+        
+        guests_data = validated_data.pop('guests', [])
+        
+        instance = super().update(instance, validated_data)
+        
+        for guest_data in guests_data:
+            guest_id = guest_data.get('id')
+
+            if guest_id:
+
+                guest_obj = Guest.objects.filter(id=guest_id, invitation=instance).first()
+                if guest_obj:
+                    guest_obj.full_name = guest_data.get('full_name', guest_obj.full_name)
+                    guest_obj.is_child = guest_data.get('is_child', guest_obj.is_child)
+                    guest_obj.attendance = guest_data.get('attendance', guest_obj.attendance)
+                    guest_obj.dietary_restrictions = guest_data.get('dietary_restrictions', guest_obj.dietary_restrictions)
+                    guest_obj.save()
+            else:
+                Guest.objects.create(invitation=instance, **guest_data)
+
+        return instance
 # -----------------------------------------------------------------------------
 # 2. SERIALIZER DE BODA (WEDDING)
 # -----------------------------------------------------------------------------
@@ -49,12 +66,7 @@ class WeddingPublicSerializer(serializers.ModelSerializer):
 # -----------------------------------------------------------------------------
 
 class InvitationPublicSerializer(serializers.ModelSerializer):
-    """
-    VISTA PÚBLICA (Para el invitado).
-    - Incluye los guests anidados (Nested).
-    - Permite actualizar (RSVP) a todos los miembros de la familia de golpe.
-    - Oculta datos sensibles como el teléfono o email.
-    """
+
     guests = GuestSerializer(many=True) # Aquí ocurre la magia de la anidación
     wedding = WeddingPublicSerializer(read_only=True)
 
@@ -63,14 +75,11 @@ class InvitationPublicSerializer(serializers.ModelSerializer):
         # Solo mostramos lo que el invitado necesita ver/editar
         #fields = ['uuid', 'family_name', 'status', 'guests', 'wedding', 'phone_number']
         fields = ['uuid', 'family_name', 'status', 'guests', 'wedding', 'phone_number']
-        read_only_fields = ['uuid', 'family_name']
+        read_only_fields = ['uuid', ]
          
 
     def update(self, instance, validated_data):
-        """
-        Lógica personalizada para permitir editar los invitados anidados
-        cuando se hace un PATCH/PUT a la invitación principal.
-        """
+
         guests_data = validated_data.pop('guests', [])
         
         # 1. Actualizamos el estado de la invitación principal (ej: a COMPLETED)
@@ -91,8 +100,6 @@ class InvitationPublicSerializer(serializers.ModelSerializer):
         
         return instance
     
-
-
 # -----------------------------------------------------------------------------
 # 4. SERIALIZER DE FOTOS
 # -----------------------------------------------------------------------------
