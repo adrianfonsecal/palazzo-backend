@@ -86,7 +86,7 @@ REST_FRAMEWORK = {
 
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
-print("DATABASE_URL:", os.getenv('DATABASE_URL'))   
+
 DATABASES = {
     'default': dj_database_url.config(default=os.getenv('DATABASE_URL'))
     # {
@@ -137,7 +137,7 @@ STATIC_FILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 # CORS AND CSRF SETTINGS
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000", # Tu Next.js local
-    "https://*.up.railway.app", # Comodín para cualquier URL de Railway
+    "https://*.up.railway.app/api/*", # Comodín para cualquier URL de Railway
     "https://palazzoinvites.com", # Tu producción futura
 ]
 
@@ -146,6 +146,7 @@ CSRF_TRUSTED_ORIGINS = [
     "https://palazzoinvites.com",
     'https://*.ngrok-free.app', # Comodín para cualquier URL de ngrok
     "https://*.up.railway.app", # Comodín para cualquier URL de Railway
+    "https://*.up.railway.app/api/*", # Comodín para cualquier URL de Railway
 ]
 
 CORS_ALLOW_CREDENTIALS = True
