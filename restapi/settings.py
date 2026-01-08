@@ -45,6 +45,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -127,10 +128,12 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATIC_FILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # CORS AND CSRF SETTINGS
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000", # Tu Next.js local
+    "https://*.up.railway.app", # Comodín para cualquier URL de Railway
     "https://palazzoinvites.com", # Tu producción futura
 ]
 
@@ -138,6 +141,7 @@ CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
     "https://palazzoinvites.com",
     'https://*.ngrok-free.app', # Comodín para cualquier URL de ngrok
+    "https://*.up.railway.app", # Comodín para cualquier URL de Railway
 ]
 
 CORS_ALLOW_CREDENTIALS = True

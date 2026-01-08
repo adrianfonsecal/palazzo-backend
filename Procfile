@@ -1,1 +1,1 @@
-web: gunicorn restapi.wsgi
+web: python manage.py collectstatic && gunicorn restapi.wsgi
