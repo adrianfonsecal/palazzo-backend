@@ -49,8 +49,8 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -137,17 +137,20 @@ STATIC_FILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 # CORS AND CSRF SETTINGS
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000", # Tu Next.js local
-    "https://*.up.railway.app/api/*", # Comodín para cualquier URL de Railway
+    "https://front-end-production-dbe9.up.railway.app", # Comodín para cualquier URL de Railway
     "https://palazzoinvites.com", # Tu producción futura
+]
+
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^https://.*\.up\.railway\.app$",
 ]
 
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
     "https://palazzoinvites.com",
-    'https://*.ngrok-free.app', # Comodín para cualquier URL de ngrok
-    "https://*.up.railway.app", # Comodín para cualquier URL de Railway
-    "https://*.up.railway.app/api/*", # Comodín para cualquier URL de Railway
+    "https://front-end-production-dbe9.up.railway.app", # Comodín para cualquier URL de Railway
 ]
+
 
 CORS_ALLOW_CREDENTIALS = True
 SESSION_COOKIE_SECURE = True
