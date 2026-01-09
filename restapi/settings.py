@@ -29,7 +29,7 @@ SECRET_KEY = 'django-insecure-e$82k1c-gtc$(+^quro^4+stxuu7bofumai&w+ntf=zcj2jg))
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['.palazzoinvites.com', '.up.railway.app', 'localhost']
 
 # Application definition
 
@@ -140,9 +140,8 @@ STATIC_FILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # CORS AND CSRF SETTINGS
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000", # Tu Next.js local
-    "https://front-end-production-dbe9.up.railway.app", # Comodín para cualquier URL de Railway
-    "https://palazzoinvites.com", # Tu producción futura
+    "https://app.palazzoinvites.com", 
+    "http://localhost:3000",
 ]
 
 CORS_ALLOWED_ORIGIN_REGEXES = [
@@ -150,11 +149,12 @@ CORS_ALLOWED_ORIGIN_REGEXES = [
 ]
 
 CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:3000",
-    "https://palazzoinvites.com",
-    "https://front-end-production-dbe9.up.railway.app", # Comodín para cualquier URL de Railway
+    "https://app.palazzoinvites.com",
+    "https://api.palazzoinvites.com",
 ]
 
+SESSION_COOKIE_DOMAIN = ".palazzoinvites.com" # El punto al inicio es clave
+CSRF_COOKIE_DOMAIN = ".palazzoinvites.com"
 
 CORS_ALLOW_CREDENTIALS = True
 SESSION_COOKIE_SECURE = True
