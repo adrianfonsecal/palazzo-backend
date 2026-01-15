@@ -80,7 +80,7 @@ class Invitation(models.Model):
     def public_url(self):
         # Propiedad helper para obtener el link rápido en el template
         # Asumiendo que configuras el dominio en settings
-        return f"https://palazzoinvites.com/invitacion/{self.uuid}"
+        return f"https://app.palazzoinvites.com/invitacion/{self.uuid}"
 
 # -----------------------------------------------------------------------------
 # 3. MODELO INVITADO (Personas Individuales)

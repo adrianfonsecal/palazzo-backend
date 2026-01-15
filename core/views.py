@@ -35,6 +35,7 @@ class WeddingPublicViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
 # -----------------------------------------------------------------------------
 # 2. VISTA PÚBLICA DE INVITACIÓN (El corazón del sistema para invitados)
 # -----------------------------------------------------------------------------
+
 class InvitationPublicViewSet(viewsets.GenericViewSet, 
                               mixins.RetrieveModelMixin, 
                               mixins.UpdateModelMixin):

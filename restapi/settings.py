@@ -89,10 +89,10 @@ REST_FRAMEWORK = {
 
 DATABASES = {
     'default': dj_database_url.config(
-        default=os.getenv('DATABASE_URL'),
-        conn_max_age=600, # 10 minutos
-        ssl_require=True
-        )
+                    default=os.getenv('DATABASE_URL'),
+                    conn_max_age=600, # 10 minutos
+                    ssl_require=True
+                )
     # {
     #     'ENGINE': 'django.db.backends.sqlite3',
     #     'NAME': BASE_DIR / 'db.sqlite3',
@@ -149,12 +149,19 @@ CORS_ALLOWED_ORIGIN_REGEXES = [
 ]
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://app.palazzoinvites.com",
-    "https://api.palazzoinvites.com",
+    "http://localhost:3000",      # Tu CRM Next.js
+    "http://127.0.0.1:3000",      # Variación de local
+    "https://app.palazzoinvites.com", # Tu dominio de producción del frontend (si ya existe)
 ]
 
+# CSRF_COOKIE_SECURE = not DEBUG 
+# SESSION_COOKIE_SECURE = not DEBUG
+
+# CSRF_COOKIE_SAMESITE = 'None' # Esto está bien para cross-site
+# SESSION_COOKIE_SAMESITE = 'None'
+
 SESSION_COOKIE_DOMAIN = ".palazzoinvites.com" # El punto al inicio es clave
-CSRF_COOKIE_DOMAIN = ".palazzoinvites.com"
+CSRF_COOKIE_DOMAIN = "localhost"
 
 CORS_ALLOW_CREDENTIALS = True
 SESSION_COOKIE_SECURE = True
