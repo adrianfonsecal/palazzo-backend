@@ -10,12 +10,17 @@ from rest_framework.validators import UniqueValidator
 
 class GuestSerializer(serializers.ModelSerializer):
     # Definimos id explícitamente para que no sea read-only y pase a validated_data
-    id = serializers.IntegerField(required=False) 
+    id = serializers.IntegerField(required=False)
+
+    invitation = serializers.PrimaryKeyRelatedField(
+        queryset=Invitation.objects.all(), 
+        required=False
+    ) 
 
     class Meta:
         model = Guest
         fields = ['id', 'full_name', 'is_child', 'attendance', 'dietary_restrictions', 'invitation']
-        read_only_fields = ['invitation'] # La invitación se infiere del padre
+        #read_only_fields = ['invitation'] # La invitación se infiere del padre
     
 class InvitationAdminSerializer(serializers.ModelSerializer):
     guests = GuestSerializer(many=True, required=False) 

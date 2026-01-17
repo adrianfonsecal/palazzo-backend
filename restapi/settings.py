@@ -29,7 +29,7 @@ SECRET_KEY = 'django-insecure-e$82k1c-gtc$(+^quro^4+stxuu7bofumai&w+ntf=zcj2jg))
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['.palazzoinvites.com', '.up.railway.app', 'localhost']
+ALLOWED_HOSTS = ['.palazzoinvites.com', '.up.railway.app', 'localhost', 'palazzoinvites.com']
 
 # Application definition
 
@@ -143,6 +143,7 @@ STATIC_FILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 CORS_ALLOWED_ORIGINS = [
     "https://app.palazzoinvites.com", 
     "https://api.palazzoinvites.com", # Tu dominio de producción del frontend (si ya existe)
+    "https://palazzoinvites.com", # Tu dominio de producción del frontend (si ya existe)
     "http://localhost:3000",
     "http://localhost:5500",
 ]
@@ -157,22 +158,20 @@ CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1:3000",      # Variación de local
     "https://app.palazzoinvites.com", # Tu dominio de producción del frontend (si ya existe)
     "https://api.palazzoinvites.com", # Tu dominio de producción del frontend (si ya existe)
+    "https://palazzoinvites.com", # Tu dominio de producción del frontend (si ya existe)
 ]
 
-# CORS_ALLOW_CREDENTIALS = True
-# SESSION_COOKIE_SECURE = True
-
-CSRF_COOKIE_SECURE = not DEBUG 
-SESSION_COOKIE_SECURE = not DEBUG
-
-CSRF_COOKIE_SAMESITE = 'None' # Esto está bien para cross-site
-SESSION_COOKIE_SAMESITE = 'None'
-
-SESSION_COOKIE_DOMAIN = ".palazzoinvites.com" # El punto al inicio es clave
-CSRF_COOKIE_DOMAIN = "localhost"
-
 CORS_ALLOW_CREDENTIALS = True
-#SESSION_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = True
+
+#CSRF_COOKIE_SECURE = not DEBUG 
+#SESSION_COOKIE_SECURE = not DEBUG
+
+# CSRF_COOKIE_SAMESITE = 'None' # Esto está bien para cross-site
+# SESSION_COOKIE_SAMESITE = 'None'
+
+# SESSION_COOKIE_DOMAIN = ".palazzoinvites.com" # El punto al inicio es clave
+# CSRF_COOKIE_DOMAIN = "localhost"
 
 
 # Celery Configuration Options
