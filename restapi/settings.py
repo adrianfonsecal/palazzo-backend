@@ -79,8 +79,8 @@ WSGI_APPLICATION = 'restapi.wsgi.application'
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        #'rest_framework_simplejwt.authentication.JWTAuthentication',
-        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        #'rest_framework.authentication.SessionAuthentication',
     ),
 }
 
@@ -172,7 +172,7 @@ SESSION_COOKIE_DOMAIN = ".palazzoinvites.com" # El punto al inicio es clave
 CSRF_COOKIE_DOMAIN = "localhost"
 
 CORS_ALLOW_CREDENTIALS = True
-SESSION_COOKIE_SECURE = True
+#SESSION_COOKIE_SECURE = True
 
 
 # Celery Configuration Options
