@@ -1,21 +1,24 @@
-from rest_framework import viewsets, mixins, status, permissions, serializers
+from rest_framework import viewsets, mixins, status, permissions, serializers, generics
 from django.contrib.auth.forms import UserCreationForm
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.throttling import AnonRateThrottle
 from django.shortcuts import get_object_or_404
 import os
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from .tasks import import_guests_task, send_whatsapp_blast_task # Importamos la tarea
-from .models import Wedding, Invitation, Photo, Guest
+from .models import Wedding, Invitation, Photo, Guest, Lead
 from .serializers import (
+    PublicLeadSerializer,
     UserSerializer,
     WeddingPublicSerializer, 
     InvitationPublicSerializer, 
     InvitationAdminSerializer,
     PhotoSerializer,
-    GuestSerializer
+    GuestSerializer,
+    PublicLeadSerializer
 )
 
 # -----------------------------------------------------------------------------
@@ -262,3 +265,26 @@ class UserRegistrationViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin):
     #         "user_id": user.id,
     #         "wedding_id": user.wedding.id # Devolvemos esto para facilitar el frontend
     #     }, status=status.HTTP_201_CREATED)
+
+# -----------------------------------------------------------------------------
+# 6. VISTA de Registro LEADS (Para Captura de Interesados) ADMIN ONLY
+# -----------------------------------------------------------------------------
+
+class LeadCreateThrottle(AnonRateThrottle):
+    rate = '5/minute' # Solo permite 5 intentos por minuto por IP
+
+class PublicLeadCreateView(generics.CreateAPIView):
+    """
+    Endpoint PÚBLICO solo para CREAR leads (POST).
+    Tiene protección contra spam masivo (Throttling).
+    """
+    queryset = Lead.objects.all()
+    serializer_class = PublicLeadSerializer # Usamos el serializer con validaciones
+    permission_classes = [permissions.AllowAny] # Abierto al público
+    throttle_classes = [LeadCreateThrottle] # Protección contra ataques
+
+# MANTÉN TU VISTA ANTERIOR PARA EL PANEL DE ADMIN (Solo lectura/gestión)
+class LeadViewSet(viewsets.ModelViewSet):
+    queryset = Lead.objects.all()
+    serializer_class = PublicLeadSerializer
+    permission_classes = [permissions.IsAuthenticated] # Solo tú puedes ver la lista

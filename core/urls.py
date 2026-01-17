@@ -5,6 +5,7 @@ from rest_framework.routers import DefaultRouter
 
 # Importamos las vistas que definimos en el paso anterior
 from .views import (
+    LeadViewSet,
     WeddingPublicViewSet,
     InvitationPublicViewSet,
     PhotoUploadViewSet,

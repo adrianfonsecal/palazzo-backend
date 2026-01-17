@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User
-from .models import Wedding
+from .models import Lead, Wedding
 
 # 1. Definimos el "Inline".
 # Esto le dice a Django: "Muestra el formulario de Wedding DENTRO del formulario de User"
@@ -40,3 +40,8 @@ admin.site.register(User, UserAdmin)
 class WeddingAdmin(admin.ModelAdmin):
     list_display = ('couple_names', 'slug', 'event_date', 'owner')
     search_fields = ('couple_names', 'slug', 'owner__username')
+
+admin.site.site_header = "Palazzo Invites Admin"
+admin.site.site_title = "Palazzo Invites Admin Portal"
+admin.site.index_title = "Welcome to Palazzo Invites Admin Portal"
+admin.site.register(Lead)

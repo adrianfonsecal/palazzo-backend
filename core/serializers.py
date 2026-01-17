@@ -1,7 +1,8 @@
 
 from rest_framework import serializers
-from .models import Wedding, Invitation, Guest, Photo
+from .models import Wedding, Invitation, Guest, Photo, Lead
 from django.contrib.auth.models import User
+from rest_framework.validators import UniqueValidator
 
 # -----------------------------------------------------------------------------
 # 1. SERIALIZERS DE INVITADOS (GUEST)
@@ -170,3 +171,24 @@ class UserSerializer(serializers.ModelSerializer):
         wedding.save()
         
         return user
+    
+class PublicLeadSerializer(serializers.ModelSerializer):
+    # Validamos que el email sea único en la tabla Lead
+    email = serializers.EmailField(
+        required=True,
+        validators=[UniqueValidator(queryset=Lead.objects.all(), message="Este correo ya ha sido registrado previamente.")]
+    )
+
+    class Meta:
+        model = Lead
+        fields = ['full_name', 'email', 'phone_number', 'message']
+    
+    def validate(self, data):
+        """
+        Validación extra: Evitar duplicados por teléfono también si lo deseas.
+        """
+        phone = data.get('phone_number')
+        if Lead.objects.filter(phone_number=phone).exists():
+            raise serializers.ValidationError({"phone_number": "Este teléfono ya ha sido registrado."})
+        
+        return data

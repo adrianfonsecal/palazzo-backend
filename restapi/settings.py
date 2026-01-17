@@ -79,8 +79,8 @@ WSGI_APPLICATION = 'restapi.wsgi.application'
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-        #'rest_framework.authentication.SessionAuthentication',
+        #'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
     ),
 }
 
@@ -88,7 +88,8 @@ REST_FRAMEWORK = {
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
 DATABASES = {
-    'default': dj_database_url.config(
+    'default': 
+    dj_database_url.config(
                     default=os.getenv('DATABASE_URL'),
                     conn_max_age=600, # 10 minutos
                     ssl_require=True
@@ -143,6 +144,7 @@ CORS_ALLOWED_ORIGINS = [
     "https://app.palazzoinvites.com", 
     "https://api.palazzoinvites.com", # Tu dominio de producción del frontend (si ya existe)
     "http://localhost:3000",
+    "http://localhost:5500",
 ]
 
 CORS_ALLOWED_ORIGIN_REGEXES = [
@@ -151,10 +153,14 @@ CORS_ALLOWED_ORIGIN_REGEXES = [
 
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",      # Tu CRM Next.js
+    "http://localhost:5500",      # Variación de local
     "http://127.0.0.1:3000",      # Variación de local
     "https://app.palazzoinvites.com", # Tu dominio de producción del frontend (si ya existe)
     "https://api.palazzoinvites.com", # Tu dominio de producción del frontend (si ya existe)
 ]
+
+# CORS_ALLOW_CREDENTIALS = True
+# SESSION_COOKIE_SECURE = True
 
 CSRF_COOKIE_SECURE = not DEBUG 
 SESSION_COOKIE_SECURE = not DEBUG
@@ -166,7 +172,7 @@ SESSION_COOKIE_DOMAIN = ".palazzoinvites.com" # El punto al inicio es clave
 CSRF_COOKIE_DOMAIN = "localhost"
 
 CORS_ALLOW_CREDENTIALS = True
-#SESSION_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = True
 
 
 # Celery Configuration Options

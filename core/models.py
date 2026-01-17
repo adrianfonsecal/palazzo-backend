@@ -124,3 +124,27 @@ class Photo(models.Model):
 
     def __str__(self):
         return f"Foto {self.id} - {self.wedding.slug}"
+    
+
+# -----------------------------------------------------------------------------
+# 4. MODELO LEADS (LEADS DE INTERÉS)
+# -----------------------------------------------------------------------------
+
+class Lead(models.Model):
+    """
+    Modelo para capturar leads interesados en usar el servicio.
+    """
+    full_name = models.CharField(max_length=150)
+    email = models.EmailField(blank=True, null=True)
+    phone_number = models.CharField(max_length=20)
+    message = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Reason(models.TextChoices):
+        INFORMACION_GENERAL = 'INFORMACION_GENERAL', _('Información general')
+        PREMIUM = 'PREMIUM', _('Paquete Premium')
+        PALAZZO = 'PALAZZO', _('Paquete Palazzo')
+        IMPERIAL = 'IMPERIAL', _('Paquete Imperial')
+
+    def __str__(self):
+        return f"Lead: {self.full_name} - {self.phone_number}"
