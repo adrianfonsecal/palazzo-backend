@@ -3,8 +3,9 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 import json
 from .models import Invitation
+from django.conf import settings
 
-VERIFY_TOKEN = "PALAZZO_SECRET_TOKEN_123" 
+VERIFY_TOKEN = settings.META_WEBHOOK_TOKEN
 
 @csrf_exempt
 def whatsapp_webhook(request):

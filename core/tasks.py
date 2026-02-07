@@ -96,32 +96,40 @@ def send_whatsapp_blast_task(invitation_uuids):
 
     for invite in invitations:
         try:
-            # 2. Construimos el Payload (ESTO DEBE COINCIDIR CON TU PLANTILLA EN META)
             payload = {
                 "messaging_product": "whatsapp",
-                "to": invite.phone_number,
+                "recipient_type": "individual",
+                "to": "529999967168",
                 "type": "template",
                 "template": {
-                    "name": "hello_world",  # <--- Cambia esto por el nombre de tu plantilla
-                    "language": {"code": "en_US"}, # <--- O "es_MX",
-                    # "components": [
-                    #     {
-                    #         "type": "body",
-                    #         "parameters": [
-                    #             {
-                    #                 "type": "text",
-                    #                 "text": invite.family_name
-                    #             },
-                    #             {
-                    #                 "type": "text",
-                    #                 "text": invite.public_url
-                    #             }
-                    #         ]
-                    #     }
-                    # ]
-                    # # "components": [ ... ] # Si tu plantilla tiene variables, van aquí
+                    "name": "mensaje_invitacion",
+                    "language": {
+                        "code": "es_MX"
+                    },
+                    "components": [
+                        {
+                        "type": "body",
+                        "parameters": [
+                            {
+                            "type": "text",
+                            "parameter_name": "nombre",
+                            "text": invite.family_name
+                            },
+                            {
+                            "type": "text",
+                            "parameter_name": "nombre_boda",
+                            "text": invite.wedding.couple_names
+                            },
+                            {
+                            "type": "text",
+                            "text": str(invite.uuid)
+                            }
+                        ]
+                        }
+                    ]
                 }
             }
+
             
             
             # 3. Enviar

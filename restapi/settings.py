@@ -89,15 +89,15 @@ REST_FRAMEWORK = {
 
 DATABASES = {
     'default': 
-    dj_database_url.config(
-                    default=os.getenv('DATABASE_URL'),
-                    conn_max_age=600, # 10 minutos
-                    ssl_require=True
-                )
-    # {
-    #     'ENGINE': 'django.db.backends.sqlite3',
-    #     'NAME': BASE_DIR / 'db.sqlite3',
-    # }
+    # dj_database_url.config(
+    #                 default=os.getenv('DATABASE_URL'),
+    #                 conn_max_age=600, # 10 minutos
+    #                 ssl_require=True
+    #             )
+    {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
 }
 
 
@@ -182,5 +182,6 @@ CELERY_BROKER_URL = os.getenv('REDIS_URL')
 
 # Credenciales de Meta / Facebook Developers
 META_ACCESS_TOKEN = os.getenv('META_ACCESS_TOKEN')
+META_WEBHOOK_TOKEN = os.getenv('META_WEBHOOK_TOKEN')
 META_PHONE_ID = os.getenv('META_PHONE_ID')
 META_API_VERSION = "v22.0"
