@@ -87,10 +87,9 @@ def send_whatsapp_blast_task(invitation_uuids):
         "failed": 0,
         "errors": []
     }
-
-    url = f"https://graph.facebook.com/{settings.META_API_VERSION}/{settings.META_PHONE_ID}/messages"
+    url = f"https://graph.facebook.com/v23.0/963271596861809/messages"
     headers = {
-        "Authorization": f"Bearer {settings.META_ACCESS_TOKEN}",
+        "Authorization": f"Bearer EAANLS1fqZBcsBQr7IdpK83ZB6VtlTxvvNwNvD6tg3L3mUChGypVlW0GwT8W9bz6ipigLbY6DZBS1WBNr336FGqwWYkDkCJkFZAUr1AUGL08gzNA8ZBA6wjKKUeI55gksoStrCMxoXwZAyAoZBBgla39AQZBmS8BnsxC3jF4UJfk2o9v1ZAyS5iNPdJHx9woINVxWS4tYiPb9AobMUPtUz4SVDURj7i93UQIaMeeDUoNQp",
         "Content-Type": "application/json"
     }
 
@@ -99,43 +98,64 @@ def send_whatsapp_blast_task(invitation_uuids):
             payload = {
                 "messaging_product": "whatsapp",
                 "recipient_type": "individual",
-                "to": "529999967168",
+                "to": invite.phone_number,
                 "type": "template",
                 "template": {
                     "name": "mensaje_invitacion",
                     "language": {
-                        "code": "es_MX"
+                        "code": "en"
                     },
                     "components": [
                         {
-                        "type": "body",
-                        "parameters": [
-                            {
-                            "type": "text",
-                            "parameter_name": "nombre",
-                            "text": invite.family_name
-                            },
-                            {
-                            "type": "text",
-                            "parameter_name": "nombre_boda",
-                            "text": invite.wedding.couple_names
-                            },
-                            {
-                            "type": "text",
-                            "text": str(invite.uuid)
-                            }
-                        ]
+                            "type": "header",
+                            "parameters": [
+                                {
+                                    "type": "image",
+                                    "parameter_name": "imagen_boda",
+                                    "image": {
+                                        "id": "2387781248333171"
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "type": "body",
+                            "parameters": [
+                                {
+                                    "type": "text",
+                                    "parameter_name": "nombre",
+                                    "text": invite.family_name
+                                },
+                                {
+                                    "type": "text",
+                                    "parameter_name": "nombre_boda",
+                                    "text": invite.wedding.couple_names
+                                }
+                            ]
+                        },
+                        {
+                            "type": "button",
+                            "sub_type": "url",
+                            "index": 0,
+                            "parameters": [
+                                {
+                                    "type": "text",
+                                    "text": str(invite.uuid)
+                                }
+                            ]
                         }
                     ]
                 }
             }
+            print(payload)
 
             
             
             # 3. Enviar
             response = requests.post(url, json=payload, headers=headers, timeout=10)
             data = response.json()
-
+            #print(f"Respuesta WhatsApp para {invite.phone_number}: {data}")
+             
             if response.status_code in [200, 201]:
                 wamid = data.get('messages', [{}])[0].get('id')
                 invite.whatsapp_message_id = wamid # <--- GUARDAMOS EL ID
