@@ -51,15 +51,22 @@ def import_guests_task(wedding_id, file_path):
                 if created:
                     invitations_created += 1
 
+                
                 for _, row in rows.iterrows():
-                    guest_list = row["nombre_invitado"].split(',')
+                    nombre_invitado = row.get("nombre_invitado")
+                    if pd.isna(nombre_invitado) or str(nombre_invitado).strip() == "":
+                        continue
+
+                    guest_list = str(nombre_invitado).split(',')
                     for guest_name in guest_list:
-                        Guest.objects.create(
-                            invitation=invitation,
-                            full_name=guest_name.strip(),
-                            is_child=bool(row.get('es_nino', False))
-                        )
-                        guests_created += 1
+                        guest_name_clean = guest_name.strip()
+                        if guest_name_clean:
+                            Guest.objects.create(
+                                invitation=invitation,
+                                full_name=guest_name_clean,
+                                is_child=bool(row.get('es_nino', False))
+                            )
+                            guests_created += 1
         
 
         if os.path.exists(file_path):
