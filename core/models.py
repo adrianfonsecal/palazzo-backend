@@ -56,6 +56,7 @@ class Invitation(models.Model):
         DELIVERED = 'DELIVERED', _('Entregado')
         OPENED = 'OPENED', _('Visto por el invitado')
         COMPLETED = 'COMPLETED', _('Confirmación Completada')
+        DECLINED = 'DECLINED', _('Rechazada')
 
     wedding = models.ForeignKey(Wedding, on_delete=models.CASCADE, related_name='invitations')
     
